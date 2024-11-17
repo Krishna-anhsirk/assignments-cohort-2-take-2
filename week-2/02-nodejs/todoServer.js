@@ -39,11 +39,82 @@
 
   Testing the server - run `npm run test-todoServer` command in terminal
  */
-  const express = require('express');
-  const bodyParser = require('body-parser');
-  
-  const app = express();
-  
-  app.use(bodyParser.json());
-  
-  module.exports = app;
+const express = require('express');
+const bodyParser = require('body-parser');
+const { v4: uuid } = require('uuid');
+
+const app = express();
+const port = 3000;
+
+let todos = [];
+
+app.use(bodyParser.json());
+
+// @desc    Get all todos
+// @route   GET /todos
+app.get('/todos', (req, res) => {
+  res.status(200).json(todos);
+});
+
+// @desc    Get a specific todo by ID
+// @route   GET /todos/:id
+app.get('/todos/:id', (req, res) => {
+  const { id } = req.params;
+  const todo = todos.find((todo) => todo.id === id);
+  if (!todo) {
+    return res.status(404).json({ msg: 'Not found' });
+  }
+
+  res.status(200).json(todo);
+});
+
+// @desc    Create a new todo
+// @route   POST /todos
+app.post('/todos', (req, res) => {
+  const { title, completed, description } = req.body;
+  const newTodo = { id: uuid(), title, completed, description };
+  todos.push(newTodo);
+  return res.status(201).json({ id: newTodo.id });
+});
+
+// @desc    Update existing todo
+// @route   PUT /todos/:id
+app.put('/todos/:id', (req, res) => {
+  const { id } = req.params;
+
+  const todoIndex = todos.findIndex((todo) => todo.id === id);
+
+  if (todoIndex === -1) {
+    return res.status(404).json({ msg: 'Not found' });
+  }
+
+  const { title, completed, description } = req.body;
+  if (title) todos[todoIndex].title = title;
+  if (completed) todos[todoIndex].completed = completed;
+  if (description) todos[todoIndex].description = description;
+
+  res.status(200).json(todos[todoIndex]);
+});
+
+// @desc    Delete a todo by ID
+// @route   /todos/:id
+app.delete('/todos/:id', (req, res) => {
+  const { id } = req.params;
+
+  const todoIndex = todos.findIndex((todo) => todo.id === id);
+
+  if (todoIndex === -1) {
+    return res.status(404).json({ msg: 'Not found' });
+  }
+
+  todos = todos.filter((todo) => todo.id !== id);
+
+  res.status(200).json({ msg: `Todo item with ID ${id} is deleted` });
+});
+
+app.use((req, res, next) => {
+  res.status(404).json({ msg: 'Not found' });
+  next();
+});
+
+module.exports = app;
